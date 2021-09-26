@@ -4,7 +4,11 @@
  * Description: Prg 01 - Lexeme (a symbol with a token value)
  */
 
-class Lexeme(private var label: String, private var token: Token.Value) extends Symbol(label) {
+class Lexeme(private var label: String, private var token: Token.Value) {
+
+  def getLabel() = label
+
+  def setLabel(label: String) = { this.label = label }
 
   def getToken() = { token }
 

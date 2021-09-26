@@ -23,25 +23,25 @@ character   = letter | digit | punctuation | special | blank
  */
 
 object Token extends Enumeration {
-  val COMMENT       = Value // '
-  val IDENTIFIER    = Value // 
-  val STRING        = Value // 
-  val LITERAL       = Value //  
-  val QUESTION_MARK = Value // ?
-  val BANG          = Value // !
-  val EQUAL         = Value // =
-  val PLUS          = Value // +
-  val DASH          = Value // -
-  val ASTERISK      = Value // *
-  val CIRCUMFLEX    = Value // ^
-  val PERIOD        = Value // .
-  val SLASH         = Value // /
-  val BACKSLASH     = Value // \
-  val BEGIN_LOOP    = Value // (
-  val END_LOOP      = Value // )
-  val EOF           = Value
-  val EO_PRG        = Value // $$
-  val BEGIN_IF      = Value // [
-  val END_IF        = Value // ]
-  val NEW_LINE      = Value // \n
+  val COMMENT       = Value // '  0
+  val IDENTIFIER    = Value //    1
+  val STRING        = Value //    2
+  val LITERAL       = Value //    3
+  val QUESTION_MARK = Value // ?  4
+  val BANG          = Value // !  5
+  val EQUAL         = Value // =  6
+  val PLUS          = Value // +  7
+  val DASH          = Value // -  8
+  val ASTERISK      = Value // *  9
+  val CIRCUMFLEX    = Value // ^  10
+  val PERIOD        = Value // .  11
+  val SLASH         = Value // /  12
+  val BACKSLASH     = Value // \  13
+  val BEGIN_LOOP    = Value // (  14
+  val END_LOOP      = Value // )  15
+  val EOF           = Value //    16
+  val EO_PRG        = Value // $$ 17
+  val BEGIN_IF      = Value // [  18
+  val END_IF        = Value // ]  19
+  val NEW_LINE      = Value // \n 20
 }

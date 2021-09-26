@@ -36,18 +36,18 @@ class LexicalAnalyzer(private var source: String) extends Iterable[Lexeme]{
   // advances the input one character (requires checking for eof before call)
   private def nextChar() = {input = input.substring(1)}
   // checks if input has a blank character ahead
-  private def hasBlank(): Boolean = {BLANKS.contains(getChar)}
+  private def hasBlank(): Boolean = {BLANKS.contains(getChar())}
   // checks if input has a letter ahead
-  private def hasLetter(): Boolean = {LETTERS.contains(getChar)}
-  private def hasDigit(): Boolean = {DIGITS.contains(getChar)}
+  private def hasLetter(): Boolean = {LETTERS.contains(getChar())}
+  private def hasDigit(): Boolean = {DIGITS.contains(getChar())}
   // checks if input has a special character ahead
-  private def hasSpecial(): Boolean = {SPECIALS.contains(getChar)}
-  private def hasPunctuation(): Boolean = {PUNCTUATIONS.contains(getChar)}
+  private def hasSpecial(): Boolean = {SPECIALS.contains(getChar())}
+  private def hasPunctuation(): Boolean = {PUNCTUATIONS.contains(getChar())}
   private def hasChar(ch: Char): Boolean = {input.startsWith(ch + "")}
   // reads the input until a non-blank character is found, updating the input
   def readBlanks: Unit = {
-    while (!eof && (hasBlank || hasChar('\n'))) {
-      nextChar
+    while (!eof && (hasBlank() || hasChar('\n'))) {
+      nextChar()
     }
   }
   
@@ -63,25 +63,25 @@ class LexicalAnalyzer(private var source: String) extends Iterable[Lexeme]{
       // returns the next lexeme (or end of line if there isn't any lexeme left to be read)
       // TODO: finish this part of the code
       override def next(): Lexeme = {
-        val c = getChar
+        val c = getChar()
         readBlanks
         if (!hasNext)
           return new Lexeme("eof", Token.EOF)
         var str = ""
         if (hasChar('\'')) {
-          nextChar
+          nextChar()
            while (!eof && !hasChar(NEW_LINE)){
-             str += getChar + ""
-             nextChar
+             str += getChar() + ""
+             nextChar()
            }
           return new Lexeme(str, Token.COMMENT)
         }
-        if (hasLetter) {
-          str += getChar
-          nextChar
+        if (hasLetter()) {
+          str += getChar()
+          nextChar()
           while (!eof && (hasLetter() || hasDigit())) {
-            str = str + getChar
-            nextChar
+            str = str + getChar()
+            nextChar()
           }
           nextChar()
           return new Lexeme(str, Token.IDENTIFIER)
@@ -89,14 +89,14 @@ class LexicalAnalyzer(private var source: String) extends Iterable[Lexeme]{
           nextChar()
           while(!eof && !hasChar('"')) {
             str = str + getChar()
-            nextChar
+            nextChar()
           }
-          nextChar
+          nextChar()
           return new Lexeme(str, Token.STRING)
         } else if(hasDigit()) {
           while(!hasBlank()) {
             str = str + getChar()
-            nextChar
+            nextChar()
           }
           if(str(0) == '0' && str.length > 1) {
             throw new Exception("Non-zero Integers cannot have leading zeros.")
@@ -106,19 +106,19 @@ class LexicalAnalyzer(private var source: String) extends Iterable[Lexeme]{
           if(!input.startsWith("$$")) {
             throw new Exception("$ must be followed by $")
           } else {
-            nextChar
-            nextChar
+            nextChar()
+            nextChar()
             return new Lexeme("$$", Token.EO_PRG)
           }
         } else {
           if(tokenMap.contains(c)) {
             val token = tokenMap.get(c).get
-            nextChar
+            nextChar()
             return new Lexeme(c + "", token)
           }
       }
       // throw an exception if an unrecognizable symbol is found
-      throw new Exception("Lexical Analyzer Error: unrecognizable symbol '" + getChar + "'")
+      throw new Exception("Lexical Analyzer Error: unrecognizable symbol '" + getChar() + "'")
     }
   }
 }

@@ -22,12 +22,12 @@ blank       = ´ ´
 character   = letter | digit | punctuation | special | blank
  */
 
-import SyntaxAnalyzer.{GRAMMAR_FILENAME, SLR_TABLE_FILENAME}
+import SyntaxAnalyzer1.{GRAMMAR_FILENAME, SLR_TABLE_FILENAME}
 import Token.Value
 
 import scala.collection.mutable.ArrayBuffer
 
-class SyntaxAnalyzer(private var source: String) {
+class SyntaxAnalyzer1(private var source: String) {
 
   private val it = new LexicalAnalyzer(source).iterator
   private var current: Lexeme = null
@@ -60,7 +60,7 @@ class SyntaxAnalyzer(private var source: String) {
     // main parser loop
     while (true) {
 
-      if (SyntaxAnalyzer.DEBUG)
+      if (SyntaxAnalyzer1.DEBUG)
         println("stack: " + stack.mkString(","))
 
       // get current lexeme
@@ -68,7 +68,7 @@ class SyntaxAnalyzer(private var source: String) {
 
       // get current state
       var state = stack.last.strip().toInt
-      if (SyntaxAnalyzer.DEBUG)
+      if (SyntaxAnalyzer1.DEBUG)
         println("state: " + state)
 
       // get current token from lexeme
@@ -76,15 +76,15 @@ class SyntaxAnalyzer(private var source: String) {
 
       // get action
       val action = slrTable.getAction(state, token.id)
-      if (SyntaxAnalyzer.DEBUG)
+      if (SyntaxAnalyzer1.DEBUG)
         println("action: " + action)
 
-      if (action == null)
+      if (action == "")
         throw new Exception("Syntax Error!")
 
       // implement the "shift" operation if the action's prefix is "s"
       if (action(0) == 's') {
-        val nextState = action.slice(1, -1)
+        val nextState = action.substring(1)
         stack.append(nextState)
 
         // TODO: create a new tree with the lexeme (this probably isn't right)
@@ -98,13 +98,13 @@ class SyntaxAnalyzer(private var source: String) {
       // implement the "reduce" operation if the action's prefix is "r"
       else if (action(0) == 'r') {
         // TODO: get the production to use
-        val productionIndex = action.slice(1, -1).toInt
+        val productionIndex = action.substring(1).toInt
         val productionLHS = grammar.getLHS(productionIndex)
         val productionRHS = grammar.getRHS(productionIndex)
 
         // TODO: update the parser's stack
         val rhsLen = productionRHS.length
-        stack.remove(-1, rhsLen)
+        stack.dropRightInPlace(rhsLen)
         val goto = slrTable.getGoto(state, lexeme.getLabel())
         stack.append(goto)
 
@@ -112,12 +112,12 @@ class SyntaxAnalyzer(private var source: String) {
         val newTree = new Tree(productionLHS)
 
         // TODO: add "rhs.length" trees from the right-side of "trees" as children of "newTree"
-        for (i <- (1 to rhsLen)) {
-          newTree.add(trees(-i))
+        for (tree <- trees.dropRight(rhsLen)) {
+          newTree.add(tree)
         }
 
         // TODO: drop "rhs.length" trees from the right-side of "trees"
-        trees.remove(-1, rhsLen)
+        trees.dropRightInPlace(rhsLen)
 
         // TODO: append "newTree" to the list of "trees"
         trees.append(newTree)
@@ -142,11 +142,11 @@ class SyntaxAnalyzer(private var source: String) {
   }
 }
 
-object SyntaxAnalyzer {
+object SyntaxAnalyzer1 {
 
   val GRAMMAR_FILENAME   = "grammar.txt"
   val SLR_TABLE_FILENAME = "slr_table.csv"
-  val DEBUG = false
+  val DEBUG = true
 
   def main(args: Array[String]): Unit = {
     // check if source file was passed through the command-line
@@ -155,7 +155,7 @@ object SyntaxAnalyzer {
       System.exit(1)
     }
 
-    val syntaxAnalyzer = new SyntaxAnalyzer(args(0))
+    val syntaxAnalyzer = new SyntaxAnalyzer1(args(0))
     val parseTree = syntaxAnalyzer.parse()
     print(parseTree)
   }

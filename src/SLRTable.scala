@@ -13,7 +13,7 @@ class SLRTable(private var source: String) {
 
   val input = Source.fromFile(source).getLines()
   val header = input.next().split(",")
-  val eof = header.indexOf("0")
+  val eof = header.indexOf("16")
   val tokens = for (i <- 1 to eof) yield header(i).toInt
   val variables = for (i <- eof + 1 until header.length) yield header(i)
   while (input.hasNext) {
@@ -41,10 +41,10 @@ class SLRTable(private var source: String) {
   override def toString: String = {
     var out = "actions:\n"
     for ((key, value) <- actions)
-      out += key + " -> " + value + "\n"
+      out += key.toString() + " -> " + value + "\n"
     out += "gotos:\n"
     for ((key, value) <- gotos)
-      out += key + " -> " + value + "\n"
+      out += key.toString() + " -> " + value + "\n"
     out
   }
 }
