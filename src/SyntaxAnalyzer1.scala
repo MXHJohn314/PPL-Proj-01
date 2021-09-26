@@ -105,14 +105,14 @@ class SyntaxAnalyzer1(private var source: String) {
         // TODO: update the parser's stack
         val rhsLen = productionRHS.length
         stack.dropRightInPlace(rhsLen)
-        val goto = slrTable.getGoto(state, lexeme.getLabel())
+        val goto = slrTable.getGoto(stack.last.toInt, productionLHS)
         stack.append(goto)
 
         // TODO: create a new tree with the "lhs" variable as its label
         val newTree = new Tree(productionLHS)
 
         // TODO: add "rhs.length" trees from the right-side of "trees" as children of "newTree"
-        for (tree <- trees.dropRight(rhsLen)) {
+        for (tree <- trees.slice(trees.length - rhsLen, trees.length)) {
           newTree.add(tree)
         }
 

@@ -63,10 +63,10 @@ class LexicalAnalyzer(private var source: String) extends Iterable[Lexeme]{
       // returns the next lexeme (or end of line if there isn't any lexeme left to be read)
       // TODO: finish this part of the code
       override def next(): Lexeme = {
-        val c = getChar()
-        readBlanks
         if (!hasNext)
           return new Lexeme("eof", Token.EOF)
+        val c = getChar()
+        readBlanks
         var str = ""
         if (hasChar('\'')) {
           nextChar()
