@@ -6,11 +6,11 @@ import scala.collection.mutable.ArrayBuffer
  * Description: Prg 01 - Tree (each tree node has a label, a key-value map, and branches)
  */
 
-class Tree(private var label: String) {
+class TreeNode(private var label: String) {
 
   private val attributes = scala.collection.mutable.Map[String, String]()
   attributes("label") = label
-  private val branches = new ArrayBuffer[Tree]()
+  private val branches = new ArrayBuffer[TreeNode]()
 
   def setAttribute(key: String, value: String): Unit = {
     attributes(key) = value
@@ -20,13 +20,13 @@ class Tree(private var label: String) {
     attributes.get(key)
   }
 
-  def add(branch: Tree): Unit = {
+  def add(branch: TreeNode): Unit = {
     branches += branch
   }
 
   def getBranches() = branches
 
-  private def print(current: Tree, tabs: String): String = {
+  private def print(current: TreeNode, tabs: String): String = {
     var out = ""
     if (current == null)
       out
@@ -47,14 +47,14 @@ class Tree(private var label: String) {
 }
 
 // example code
-object Tree {
+object TreeNode {
   def main(args: Array[String]): Unit = {
-    val tree = new Tree("A")
-    val ab1 = new Tree("ab1")
-    val ab2 = new Tree("ab2")
-    val ab3 = new Tree("ab3")
-    val abc1 = new Tree("abc1")
-    val abc2 = new Tree("abc2")
+    val tree = new TreeNode("A")
+    val ab1 = new TreeNode("ab1")
+    val ab2 = new TreeNode("ab2")
+    val ab3 = new TreeNode("ab3")
+    val abc1 = new TreeNode("abc1")
+    val abc2 = new TreeNode("abc2")
     tree.add(ab1)
     tree.add(ab2)
     tree.add(ab3)

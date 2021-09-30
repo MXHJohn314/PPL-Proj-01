@@ -37,11 +37,14 @@ object Token extends Enumeration {
   val PERIOD        = Value // .  11
   val SLASH         = Value // /  12
   val BACKSLASH     = Value // \  13
-  val BEGIN_LOOP    = Value // (  14
+  val WHILE    = Value // (  14
   val END_LOOP      = Value // )  15
   val EOF           = Value //    16
   val EO_PRG        = Value // $$ 17
   val BEGIN_IF      = Value // [  18
   val END_IF        = Value // ]  19
   val NEW_LINE      = Value // \n 20
+  val BEGIN_MACRO   = Value // $ 
+  val END_MACRO     = Value // @
+  val MACRO_DEF     = Value // #
 }
