@@ -26,13 +26,16 @@ class SyntaxAnalyzer(private var source: String) {
   private var start = true;
   private val it = new LexicalAnalyzer(source).iterator
   private var current: Lexeme = null
+  
    private val assigners = List(Token.IDENTIFIER, Token.LITERAL, Token.STRING)
   private val genericTokens = List(
-     Token.QUESTION_MARK, Token.BANG, Token.EQUAL, Token.PLUS, Token.DASH, Token.ASTERISK, Token.CIRCUMFLEX, Token.PERIOD, Token.SLASH, Token.BACKSLASH, Token.EO_PRG
+     Token.QUESTION_MARK, Token.BANG, Token.EQUAL, Token.PLUS, Token.HYPHEN, Token.ASTERISK, Token.CIRCUMFLEX, Token.PERIOD, Token.SLASH, Token.BACKSLASH, Token.EO_PRG
   )
   private val specialTokens: Map[Token.Value, (String, String)] = Map (
     Token.WHILE -> ("while", ")"),
     Token.BEGIN_IF -> ("if", "]"),
+    Token.BEGIN_CALL -> ("call", ";"),
+    Token.BEGIN_DEF -> ("def", "@"),
   )
   // returns the current lexeme
   private def getLexeme(): Lexeme = {
@@ -49,11 +52,17 @@ class SyntaxAnalyzer(private var source: String) {
   }
 
   def parse(labelAndToken:(String, String) = ("mouse", "eof")): TreeNode = {
-    var branch = new TreeNode(labelAndToken._1) 
+    val branch = new TreeNode(labelAndToken._1) 
     if(labelAndToken._1!= "mouse"){
-       branch.add(new TreeNode(getLexeme().getLabel()))
+      val subTree = new TreeNode(getLexeme().getLabel())
+      branch.add(subTree)
+      if("calldef".contains(labelAndToken._1)){
+        nextLexeme()
+        subTree.setAttribute("value", getLexeme().getLabel())
+      }
       nextLexeme()
     }
+
     while(getLexeme().getLabel() != labelAndToken._2) {
       branch.add(parseSyntaxRule())
     }
@@ -71,7 +80,7 @@ class SyntaxAnalyzer(private var source: String) {
       token = getLexeme().getToken()
       label = getLexeme().getLabel()
     }
-    if (genericTokens.contains(token)){
+    if(genericTokens.contains(token)){
       node = new TreeNode(label)
     } else if (assigners.contains(token)){
       node = new TreeNode(token.toString.toLowerCase)
@@ -80,7 +89,6 @@ class SyntaxAnalyzer(private var source: String) {
     else if(specialTokens.contains(token)) {
       node = parse(specialTokens(token))
       node.add(new TreeNode(specialTokens(token)._2))
-//      node.add(conditional)
     }
     val stmt = new TreeNode("statement")
     if(label == "$$"){
