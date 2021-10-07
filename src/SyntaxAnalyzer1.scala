@@ -29,7 +29,7 @@ import scala.collection.mutable.ArrayBuffer
 
 class SyntaxAnalyzer1(private var source: String) {
 
-  private val it = new LexicalAnalyzer(source).iterator
+  private val it = new LexicalAnalyzerOLD(source).iterator
   private var current: Lexeme = null
   private val grammar = new Grammar(GRAMMAR_FILENAME)
   private val slrTable = new SLRTable(SLR_TABLE_FILENAME)
