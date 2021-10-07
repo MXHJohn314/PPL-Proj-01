@@ -1,6 +1,3 @@
-import scala.collection.mutable
-import scala.io.StdIn
-
 /*
  * CS3210 - Principles of Programming Languages - Fall 2021
  * Instructor: Thyago Mota
@@ -8,7 +5,10 @@ import scala.io.StdIn
  * Student(s) Name(s):
  */
 
-class MouseInterpreter(private var parseTree: TreeNode) {
+import scala.collection.mutable
+import scala.io.StdIn
+
+class MouseInterpreter(private var parseTreeNode: TreeNode, private var macroMap: mutable.Map[String, String]) {
   val stack = mutable.Stack[Int]()
   val variable = new Array[Option[Int]](26 * 2)
   for (i <- 0 until variable.length)
@@ -30,9 +30,9 @@ class MouseInterpreter(private var parseTree: TreeNode) {
   }
 
   def run(): Unit = {
-    val it = parseTree.getBranches().iterator
+    val it = parseTreeNode.getBranches().iterator
     var done = false
-    while (!done) {
+    while (!done && it.hasNext) {
       val branch = it.next()
       val label = branch.getAttribute("label").get
       if (label.equals("$$"))
@@ -51,8 +51,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
       println("[DEBUG] stack: " + stack)
       println("[DEBUG] branch.label: " + label)
     }
-
-    if (label.equals("string")) {
+    if      (label.equals("string")) {
       val value = branch.getAttribute("value").get
       print(value)
 
@@ -85,7 +84,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
       variable(a) = Some(b)
       if (MouseInterpreter.DEBUG) {
         print("[DEBUG] variable: ")
-        for (i <- 0 until variable.length)
+        for (i <- variable.indices)
           print("[" + i + "]=" + variable(i) + " ")
         println
       }
@@ -126,7 +125,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
       var done = false
       val it = branch.getBranches().iterator
       it.next // "consume" open bracket
-      val condition = stack.pop != 0
+      val condition = stack.pop > 0
       while (!done) {
         branch = it.next()
         label = branch.getAttribute("label").get
@@ -141,7 +140,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
        while (!loopDone) {
         var iterationDone = false
         val it = branch.getBranches().iterator
-        it.next
+        it.next // "consume" open parenthesis
         while (!iterationDone) {
           val subBranch = it.next()
           label = subBranch.getAttribute("label").get
@@ -160,8 +159,45 @@ class MouseInterpreter(private var parseTree: TreeNode) {
         }
       }
     }
+    else if (label == "macro_call") {
+      var str = branch.getAttribute("value").get
+      str = str.substring(1, str.length - 1)
+      val r = """[A-Za-z_][A-Za-z_0-9]*\s*\.""".r
+      var matchesz = r.findAllMatchIn(str)
+      var j = 0
+      var q = mutable.Queue[String]()
+      for(m <- matchesz){q.enqueue(str.substring(m.start, m.end))}
+      var moreDefs = ""
+      while(q.nonEmpty) {
+        val curr = q.dequeue()
+        val v = curr.replace(".", "").trim
+        val str1 = variable((nameToIndex(v) + "").toInt).get + ""
+        if("[0-9]+".r.findFirstMatchIn(curr).isDefined) {
+          str = str.replaceFirst(curr, str1)
+        } else {
+            moreDefs += v + " " + str1 + " =\n"
+        }
+      }
+      val findings = """([^\s]+)""".r.findAllMatchIn(str)
+      val args = findings.toArray.map{ _.subgroups.flatMap(Option(_)).fold("")(_ ++ _) }
+      var macroBody = moreDefs + "\n" +  macroMap(args(0)) 
+      var i = 0
+      var dots = 1
+      while(i < args.length - 1) {
+        if(args(i + 1) != ".") {
+          val str1 = dots + "%"
+          val arg = args(i + 1)
+          macroBody = macroBody.replaceAll(str1, arg)
+          dots += 1
+        }
+        i += 1
+      }
+      val syntaxAnalyzer = new SyntaxAnalyzer(macroBody, false)
+      val parseTreeNode = syntaxAnalyzer.parse()
+      val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)
+      interpreter.run()
+    }
   }
-
 }
 
 object MouseInterpreter {
@@ -170,15 +206,16 @@ object MouseInterpreter {
   val DEBUG = false
 
   def main(args: Array[String]): Unit = {
+
     // check if source file was passed through the command-line
     if (args.length != 1) {
       print("Missing source file!")
       System.exit(1)
     }
 
-    val syntaxAnalyzer = new SyntaxAnalyzer(args(0))
-    val parseTree = syntaxAnalyzer.parse()
-    val interpreter = new MouseInterpreter(parseTree)
+    val syntaxAnalyzer = new SyntaxAnalyzer(args(0), true)
+    val parseTreeNode = syntaxAnalyzer.parse()
+    val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)
     interpreter.run()
   }
 }

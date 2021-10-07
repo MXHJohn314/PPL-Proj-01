@@ -1,0 +1,20 @@
+$ A
+"\nThe factors of " N . ! " are:\n1, " ' print("The factors of N are:\n1, ")
+
+I 2 =                          ' I = 2'
+(     
+    1% . 1 - I . - ^           ' if I == N: break'
+    X 1% . I . \ =             ' X = N % I
+    Y X . 2 * =                ' Y = X * 2
+    X X . Y . - =              ' X = X - Y
+    X X . 1 + =                ' X = X + 1
+    X . [ I . ! ", " ]         ' print i if X > 0
+    I I . 1 + =                ' i += 1
+)
+N.!
+@
+' Mouse program to find all factors of a number
+"What number do you want the factors of?\n" ' ask for N
+N ? =
+#A N . ;
+$$

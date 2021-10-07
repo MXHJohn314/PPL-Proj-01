@@ -1,10 +1,11 @@
+import scala.collection.mutable
+
 /*
  * CS3210 - Principles of Programming Languages - Fall 2021
  * Instructor: Thyago Mota
  * Student(s):
  * Description: Prg 01 - SyntaxAnalyzer (an iterable syntax analyzer)
  */
-
 /*
 mouse       = { statement } ´$$´
 statement   = ´?´ | ´!´ | string | identifier | ´=´ | literal | ´+´ | ´-´ | ´*´ | ´/´ | ´\´ | ´^´ | ´.´ | if | while
@@ -22,27 +23,26 @@ blank       = ´ ´
 character   = letter | digit | punctuation | special | blank
  */
 
-class SyntaxAnalyzer(private var source: String) {
-  private var start = true;
-  private val it = new LexicalAnalyzer(source).iterator
+class SyntaxAnalyzer(private var source: String, private var isFile: Boolean) {
+  private val lexicalAnalyzer = new LexicalAnalyzer(source, isFile)
+  private val it = lexicalAnalyzer.iterator
   private var current: Lexeme = null
   
-   private val assigners = List(Token.IDENTIFIER, Token.LITERAL, Token.STRING)
+   private val assigners = List(Token.IDENTIFIER, Token.LITERAL, Token.STRING, Token.MACRO_CALL)
   private val genericTokens = List(
-     Token.QUESTION_MARK, Token.BANG, Token.EQUAL, Token.PLUS, Token.HYPHEN, Token.ASTERISK, Token.CIRCUMFLEX, Token.PERIOD, Token.SLASH, Token.BACKSLASH, Token.EO_PRG
+     Token.PARAMETER, Token.STD_IN, Token.STD_OUT, Token.EQUAL, Token.ADD, Token.SUBTRACT, Token.MULTIPLY, Token.BREAK, Token.PUSH_VAL, Token.DIVIDE, Token.MODULO, Token.EO_PRG
   )
   private val specialTokens: Map[Token.Value, (String, String)] = Map (
-    Token.WHILE -> ("while", ")"),
+    Token.BEGIN_WHILE -> ("while", ")"),
     Token.BEGIN_IF -> ("if", "]"),
-    Token.BEGIN_CALL -> ("call", ";"),
-    Token.BEGIN_DEF -> ("def", "@"),
+//    Token.MACRO_CALL -> ("call", ";"),
+//    Token.MACRO_DEF -> ("def", "@"),
   )
   // returns the current lexeme
-  private def getLexeme(): Lexeme = {
+  private def getLexeme: Lexeme = {
     if (current == null) {
       current = it.next
     }
-    //    println(current)
     current
   }
 
@@ -54,35 +54,35 @@ class SyntaxAnalyzer(private var source: String) {
   def parse(labelAndToken:(String, String) = ("mouse", "eof")): TreeNode = {
     val branch = new TreeNode(labelAndToken._1) 
     if(labelAndToken._1!= "mouse"){
-      val subTree = new TreeNode(getLexeme().getLabel())
+      val subTree = new TreeNode(getLexeme.getLabel())
       branch.add(subTree)
-      if("calldef".contains(labelAndToken._1)){
+      if(false/*"call".contains(labelAndToken._1)*/){
         nextLexeme()
-        subTree.setAttribute("value", getLexeme().getLabel())
+        subTree.setAttribute("value", getLexeme.getLabel())
       }
       nextLexeme()
     }
-
-    while(getLexeme().getLabel() != labelAndToken._2) {
+    val l = getLexeme.getLabel()
+    while(getLexeme.getLabel() != labelAndToken._2) {
       branch.add(parseSyntaxRule())
     }
     branch
   }
-
+  def getMap: mutable.Map[String, String] = lexicalAnalyzer.getMap
   // TODO: finish the recursive descent parser
   // parses the program, returning its corresponding parse tree
   private def parseSyntaxRule(): TreeNode  = {
     var node: TreeNode = null
-    var token = getLexeme().getToken()
-    var label = getLexeme().getLabel()
+    var token = getLexeme.getToken()
+    var label = getLexeme.getLabel()
     while (token == Token.COMMENT) {
       nextLexeme()
-      token = getLexeme().getToken()
-      label = getLexeme().getLabel()
+      token = getLexeme.getToken()
+      label = getLexeme.getLabel()
     }
-    if(genericTokens.contains(token)){
+    if(genericTokens.contains(token)) {
       node = new TreeNode(label)
-    } else if (assigners.contains(token)){
+    } else if (assigners.contains(token)) {
       node = new TreeNode(token.toString.toLowerCase)
       node.setAttribute("value", label)
     }
@@ -91,7 +91,7 @@ class SyntaxAnalyzer(private var source: String) {
       node.add(new TreeNode(specialTokens(token)._2))
     }
     val stmt = new TreeNode("statement")
-    if(label == "$$"){
+    if(label == "$$") {
       nextLexeme()
       return node
     }
@@ -110,7 +110,7 @@ object SyntaxAnalyzer {
       System.exit(1)
     }
 
-    val syntaxAnalyzer = new SyntaxAnalyzer(args(0))
+    val syntaxAnalyzer = new SyntaxAnalyzer(args(0), true)
     val parseTree = syntaxAnalyzer.parse()
     print(parseTree)
   }
