@@ -95,6 +95,8 @@ class SyntaxAnalyzer(private var source: String, private var isFile: Boolean) {
       nextLexeme()
       return node
     }
+    if(node == null) throw new Exception("No matching token found for `"
+      + label + "`. Are you missing one of `(`, `)`, `[`, `]`?")
     stmt.add(node)
     nextLexeme()
     stmt

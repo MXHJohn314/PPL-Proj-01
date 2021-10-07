@@ -128,7 +128,7 @@ class MouseInterpreter(private var parseTreeNode: Tree, private var macroMap: mu
           }
           else {
             val stmt = subBranch.getBranches()(0)
-            if (stmt.getAttribute("label").get.equals("^") && stack.pop() == 0) {
+            if (stmt.getAttribute("label").get.equals("^") && stack.pop().toInt == 0) {
               iterationDone = true
               loopDone = true
             }
@@ -140,37 +140,39 @@ class MouseInterpreter(private var parseTreeNode: Tree, private var macroMap: mu
     }
     else if (label == "macro_call") {
       var str = branch.getAttribute("value").get
-      str = str.substring(1, str.length - 1)
-      val r = """[A-Za-z_][A-Za-z_0-9]*\s*\.""".r
-      val matchesz = r.findAllMatchIn(str)
-      var j = 0
-      val q = mutable.Queue[String]()
-      for(m <- matchesz){q.enqueue(str.substring(m.start, m.end))}
-      var moreDefs = ""
+      str = str.substring(1, str.length - 1) // Remove the # and ; from the macro call
+      val r = """[A-Za-z_][A-Za-z_0-9]*\s*\.""".r // Regex to find the variables passed to the macro
+      val matches = r.findAllMatchIn(str) // Match any variables
+      val q = mutable.Queue[String]() // Put them all in a queue
+      for(m <- matches){q.enqueue(str.substring(m.start, m.end))}
+      var moreDefs = "" // A string to declare variables with values in the macro body
       while(q.nonEmpty) {
         val curr = q.dequeue()
-        val v = curr.replace(".", "").trim
-        val str1 = variables(v)
-        if("[0-9]+".r.findFirstMatchIn(curr).isDefined) {
-          str = str.replaceFirst(curr, str1)
+        val v = curr.replace(".", "").trim // Remove the dot operator
+        val str1 = variables(v) // Look up and get the value of the variable
+        if("[0-9]+".r.findFirstMatchIn(curr).isDefined) { 
+          str = str.replaceFirst(curr, str1) // Replace the variable with its value in the macro call if it's in there
         } else {
-            moreDefs += v + " " + str1 + " =\n"
+            moreDefs += v + " " + str1 + " =\n" // If not, assign the value to a variable at the top of the macro definition
         }
       }
-      val findings = """([^\s]+)""".r.findAllMatchIn(str)
+      val findings = """([^\s]+)""".r.findAllMatchIn(str) // Get all the args into an array with this regex
       val args = findings.toArray.map{ _.subgroups.flatMap(Option(_)).fold("")(_ ++ _) }
-      var macroBody = moreDefs + "\n" +  macroMap(args(0)) 
-      var i = 0
-      var dots = 1
+      var macroBody = moreDefs + "\n" +  macroMap(args(0)) // This is the string representing the sub-program to run. Initially it has only the definitions to assign variables with values from the function call and the function name 
+      var i = 0 // Keep track of the indexes
+      var variablesSeen = 1 // Count the spaces we skip due to dot operators
       while(i < args.length - 1) {
-        if(args(i + 1) != ".") {
-          val str1 = dots + "%"
-          val arg = args(i + 1)
-          macroBody = macroBody.replaceAll(str1, arg)
-          dots += 1
+        if(args(i + 1) != ".") { // Any we encounter a variable
+          val argNumber = variablesSeen + "%" // the argument number is the number of dots, followed by a `%` symbol
+          val currentArg = args(i + 1) // Offset by one because the first index is the macro name
+          macroBody = macroBody.replaceAll(argNumber, currentArg) // Replace the argument variable with the alphanumeric variable
+          variablesSeen += 1 // Increase the number of variables we've seen
         }
         i += 1
       }
+      var defs = ""
+      macroMap.foreach(entry => defs += "$" + entry._1 + "\n" + entry._2.replaceAll("\\$\\$", "@") + "\n") // add the macro definitions to the top of the file so that macros can call other macros
+      macroBody = defs + macroBody
       val syntaxAnalyzer = new SyntaxAnalyzer(macroBody, false)
       val parseTreeNode = syntaxAnalyzer.parse()
       val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)

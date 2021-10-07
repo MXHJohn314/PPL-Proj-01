@@ -16,7 +16,7 @@ class LexicalAnalyzer(private var source: String, private var isFile: Boolean) e
   val LITERAL_BAD = "^[0-9][A-Za-z_]|0[1-9]".r
   val STRING = """^\".*?\"""".r
   val END_PROGRAM = """^\$\$""".r
-  val MACRO_DEF = """(?s)^\$\s*[A-Z]\s*.*\s*?@""".r
+  val MACRO_DEF = """(?s)^\$\s*[A-Za-z][A-Za-z0-9]*.*?@""".r
   val MACRO_CALL = "^#.*?;".r
   
   var macroMap: Map[String, String] = Map() //  Make a map where keys are macro names and values are the code for that macro

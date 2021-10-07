@@ -48,10 +48,10 @@ class SyntaxAnalyzer1(private var source: String) {
     current = it.next
   }
 
-  def parse(): TreeNode = {
+  def parse(): Tree = {
 
     // create a stack of trees
-    val trees: ArrayBuffer[TreeNode] = new ArrayBuffer[TreeNode]
+    val trees: ArrayBuffer[Tree] = new ArrayBuffer[Tree]
 
     // initialize the parser's stack of (state, symbol) pairs
     val stack: ArrayBuffer[String] = new ArrayBuffer[String]
@@ -88,7 +88,7 @@ class SyntaxAnalyzer1(private var source: String) {
         stack.append(nextState)
 
         // TODO: create a new tree with the lexeme (this probably isn't right)
-        val newTree = new TreeNode(lexeme.getToken().toString)
+        val newTree = new Tree(lexeme.getToken().toString)
         newTree.setAttribute("Value", lexeme.getLabel())
         trees.append(newTree)
 
@@ -109,7 +109,7 @@ class SyntaxAnalyzer1(private var source: String) {
         stack.append(goto)
 
         // TODO: create a new tree with the "lhs" variable as its label
-        val newTree = new TreeNode(productionLHS)
+        val newTree = new Tree(productionLHS)
 
         // TODO: add "rhs.length" trees from the right-side of "trees" as children of "newTree"
         for (tree <- trees.slice(trees.length - rhsLen, trees.length)) {
@@ -126,7 +126,7 @@ class SyntaxAnalyzer1(private var source: String) {
       else if (action.equals("acc")) {
 
         // create a new tree with the "lhs" of the first production ("start symbol")
-        val newTree = new TreeNode(grammar.getLHS(0))
+        val newTree = new Tree(grammar.getLHS(0))
 
         // add all trees as children of "newTree"
         for (tree <- trees)

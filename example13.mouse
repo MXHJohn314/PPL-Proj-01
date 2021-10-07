@@ -1,6 +1,5 @@
 $ A
-"\nThe factors of " 1% . ! " are:\n1, " ' print("The factors of N are:\n1, ")
-
+#B 1% . ;
 I 2 =                          ' I = 2'
 (     
     1% . 1 - I . - ^           ' if I == N: break'
@@ -13,6 +12,11 @@ I 2 =                          ' I = 2'
 )
 R.!
 @
+
+$ B
+"\nThe factors of " 1% . ! " are:\n1, " ' print("The factors of N are:\n1, ")
+@
+
 ' Mouse program to find all factors of a number
 "What number do you want the factors of?\n" ' ask for N
 R ? =
