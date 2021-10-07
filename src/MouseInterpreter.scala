@@ -1,6 +1,3 @@
-import scala.collection.mutable
-import scala.io.StdIn
-
 /*
  * CS3210 - Principles of Programming Languages - Fall 2021
  * Instructor: Thyago Mota
@@ -8,31 +5,17 @@ import scala.io.StdIn
  * Student(s) Name(s):
  */
 
-class MouseInterpreter(private var parseTree: TreeNode) {
-  val stack = mutable.Stack[Int]()
-  val variable = new Array[Option[Int]](26 * 2)
-  for (i <- 0 until variable.length)
-    variable(i) = None
+import scala.collection.mutable
+import scala.io.StdIn
 
-  private def nameToIndex(name: String) = {
-    val c = name(0)
-    if (c.isUpper)
-      c - 'A'
-    else
-      c - 'a' + 26
-  }
-
-  private def indexToName(index: Int) = {
-    if (index < 26)
-      ('A' + index).toChar + ""
-    else
-      ('a' + index - 26).toChar + ""
-  }
-
+class MouseInterpreter(private var parseTreeNode: Tree, private var macroMap: mutable.Map[String, String]) {
+  val stack: mutable.Stack[String] = mutable.Stack[String]()
+  var variables: mutable.Map[String, String] = mutable.Map("" -> "")
+  
   def run(): Unit = {
-    val it = parseTree.getBranches().iterator
+    val it = parseTreeNode.getBranches().iterator
     var done = false
-    while (!done) {
+    while (!done && it.hasNext) {
       val branch = it.next()
       val label = branch.getAttribute("label").get
       if (label.equals("$$"))
@@ -42,7 +25,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
     }
   }
 
-  def run(stmt: TreeNode): Unit = {
+  def run(stmt: Tree): Unit = {
     var branch = stmt.getBranches()(0)
 
     var label = branch.getAttribute("label").get
@@ -51,8 +34,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
       println("[DEBUG] stack: " + stack)
       println("[DEBUG] branch.label: " + label)
     }
-
-    if (label.equals("string")) {
+    if  (label.equals("string")) {
       val value = branch.getAttribute("value").get
       print(value)
 
@@ -60,20 +42,20 @@ class MouseInterpreter(private var parseTree: TreeNode) {
         println("[DEBUG] branch.value: " + value)
     }
     else if (label.equals("identifier")) {
-      val value = branch.getAttribute("value").get
+      val value: String = branch.getAttribute("value").get
       if (MouseInterpreter.DEBUG)
         println("[DEBUG] branch.value: " + value)
-      stack.push(nameToIndex(value))
+      stack.push(value + "")
     }
     else if (label.equals("literal")) {
       val value = branch.getAttribute("value").get
       if (MouseInterpreter.DEBUG)
         println("[DEBUG] branch.value: " + value)
-      stack.push(value.toInt)
+      stack.push(value)
     }
     else if (label.equals("?")) {
       val anInt = StdIn.readInt()
-      stack.push(anInt)
+      stack.push(anInt + "")
     }
     else if (label.equals("!")) {
       val anInt = stack.pop
@@ -82,51 +64,47 @@ class MouseInterpreter(private var parseTree: TreeNode) {
     else if (label.equals("=")) {
       val b = stack.pop
       val a = stack.pop
-      variable(a) = Some(b)
+      variables += a -> b
       if (MouseInterpreter.DEBUG) {
         print("[DEBUG] variable: ")
-        for (i <- 0 until variable.length)
-          print("[" + i + "]=" + variable(i) + " ")
+        for ((k, v) <- variables)
+          print("[" + k + "]=" + v + " ")
         println
       }
     }
     else if (label.equals("+")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a + b)
+      val b: Int = stack.pop.toInt
+      val a: Int = stack.pop.toInt
+      stack.push((a + b) + "")
     }
     else if (label.equals("-")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a - b)
+      val b: Int = stack.pop.toInt
+      val a: Int = stack.pop.toInt
+      stack.push((a - b) + "")
     }
     else if (label.equals("*")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a * b)
+      val b: Int = stack.pop.toInt
+      val a: Int = stack.pop.toInt
+      stack.push((a * b) + "")
     }
     else if (label.equals("/")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a / b)
+      val b: Int = stack.pop.toInt
+      val a: Int = stack.pop.toInt
+      stack.push((a / b) + "")
     }
     else if (label.equals("\\")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a % b)
+      val b: Int = stack.pop.toInt
+      val a: Int = stack.pop.toInt
+      stack.push((a % b) + "")
     }
     else if (label.equals(".")) {
-      val index = stack.pop
-      variable(index) match {
-        case Some(value) => stack.push(value)
-        case None => throw new Exception("Runtime Error: variable " + indexToName(index) + " appears to be uninitialized!" )
-      }
+        stack.push(variables(stack.pop))
     }
     else if (label.equals("if")) {
       var done = false
       val it = branch.getBranches().iterator
       it.next // "consume" open bracket
-      val condition = stack.pop != 0
+      val condition = stack.pop.toInt > 0
       while (!done) {
         branch = it.next()
         label = branch.getAttribute("label").get
@@ -141,7 +119,7 @@ class MouseInterpreter(private var parseTree: TreeNode) {
        while (!loopDone) {
         var iterationDone = false
         val it = branch.getBranches().iterator
-        it.next
+        it.next // "consume" open parenthesis
         while (!iterationDone) {
           val subBranch = it.next()
           label = subBranch.getAttribute("label").get
@@ -160,8 +138,45 @@ class MouseInterpreter(private var parseTree: TreeNode) {
         }
       }
     }
+    else if (label == "macro_call") {
+      var str = branch.getAttribute("value").get
+      str = str.substring(1, str.length - 1)
+      val r = """[A-Za-z_][A-Za-z_0-9]*\s*\.""".r
+      val matchesz = r.findAllMatchIn(str)
+      var j = 0
+      val q = mutable.Queue[String]()
+      for(m <- matchesz){q.enqueue(str.substring(m.start, m.end))}
+      var moreDefs = ""
+      while(q.nonEmpty) {
+        val curr = q.dequeue()
+        val v = curr.replace(".", "").trim
+        val str1 = variables(v)
+        if("[0-9]+".r.findFirstMatchIn(curr).isDefined) {
+          str = str.replaceFirst(curr, str1)
+        } else {
+            moreDefs += v + " " + str1 + " =\n"
+        }
+      }
+      val findings = """([^\s]+)""".r.findAllMatchIn(str)
+      val args = findings.toArray.map{ _.subgroups.flatMap(Option(_)).fold("")(_ ++ _) }
+      var macroBody = moreDefs + "\n" +  macroMap(args(0)) 
+      var i = 0
+      var dots = 1
+      while(i < args.length - 1) {
+        if(args(i + 1) != ".") {
+          val str1 = dots + "%"
+          val arg = args(i + 1)
+          macroBody = macroBody.replaceAll(str1, arg)
+          dots += 1
+        }
+        i += 1
+      }
+      val syntaxAnalyzer = new SyntaxAnalyzer(macroBody, false)
+      val parseTreeNode = syntaxAnalyzer.parse()
+      val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)
+      interpreter.run()
+    }
   }
-
 }
 
 object MouseInterpreter {
@@ -170,15 +185,16 @@ object MouseInterpreter {
   val DEBUG = false
 
   def main(args: Array[String]): Unit = {
+
     // check if source file was passed through the command-line
     if (args.length != 1) {
       print("Missing source file!")
       System.exit(1)
     }
 
-    val syntaxAnalyzer = new SyntaxAnalyzer(args(0))
-    val parseTree = syntaxAnalyzer.parse()
-    val interpreter = new MouseInterpreter(parseTree)
+    val syntaxAnalyzer = new SyntaxAnalyzer(args(0), true)
+    val parseTreeNode = syntaxAnalyzer.parse()
+    val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)
     interpreter.run()
   }
 }
