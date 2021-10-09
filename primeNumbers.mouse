@@ -1,0 +1,17 @@
+"What number do you want to list prime numbers until?\n"
+N ? =
+"\nThe prime numbers from 1 to " N . ! " are:\n1, 2, "
+N N . 1 + =
+I 3 =
+(
+    I . N . - ^
+    J 3 =
+    B 1 =
+    (
+        J . I - ^
+        I . J . \ 0 1 - * 1 + [ B 0 = ]
+        J J . 1 + =
+    )
+    B . [ I .! ", "]
+    I I . 1 + =
+)

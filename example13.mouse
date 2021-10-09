@@ -1,24 +1,13 @@
-$ A
-#B 1% . ;
-I 2 =                          ' I = 2'
-(     
-    1% . 1 - I . - ^           ' if I == N: break'
-    X 1% . I . \ =             ' X = N % I
-    Y X . 2 * =                ' Y = X * 2
-    X X . Y . - =              ' X = X - Y
-    X X . 1 + =                ' X = X + 1
-    X . [ I . ! ", " ]         ' print i if X > 0
-    I I . 1 + =                ' i += 1
-)
-R.!
-@
-
-$ B
-"\nThe factors of " 1% . ! " are:\n1, " ' print("The factors of N are:\n1, ")
-@
-
-' Mouse program to find all factors of a number
-"What number do you want the factors of?\n" ' ask for N
-R ? =
-#A R . ;
+$fib
+flag 1 =
+1% 1 - 0 1 - * [ flag 0 = R 0 = R. ]          ' if n <= 0: return 0
+1% 3 - 0 1 - * 1% * [ flag 0 = R 1 = R. ]     ' if 1 ==1 or n == 2: return 1
+flag . [
+    a 1%. 1 - =                               ' a = n - 1
+    b a. 1 - =                                ' b = a - 1
+    #fib a; #fib b; +                         ' return fib(a) + fib(b)
+]@
+"What number do you want to do fibonacci for?"
+X ?  =
+#fib X ; !
 $$
