@@ -45,11 +45,11 @@ class SyntaxAnalyzer(private var source: String) {
   }
 
   def parseMouse() = {
-    val tree = new ParesTreeNode("mouse")
+    val tree = new Tree("mouse")
     tree.add(parseSyntaxRule)
     while(getLexeme().getToken() == Token.NEW_LINE) {
       val lexeme = getLexeme
-      tree.add(new ParesTreeNode(lexeme.getLabel))
+      tree.add(new Tree(lexeme.getLabel))
       nextLexeme
       tree.add(parseSyntaxRule)
     }
@@ -62,11 +62,11 @@ class SyntaxAnalyzer(private var source: String) {
     parseMouse()
   }
   private def parseSyntax() = {
-    val tree = new ParesTreeNode("syntax")
+    val tree = new Tree("syntax")
     tree.add(parseSyntaxRule())
     while (getLexeme().getToken() == Token.NEW_LINE) {
       val lexeme = getLexeme()
-      tree.add(new ParesTreeNode(lexeme.getLabel()))
+      tree.add(new Tree(lexeme.getLabel()))
       nextLexeme()
       tree.add(parseSyntaxRule())
     }
@@ -75,14 +75,14 @@ class SyntaxAnalyzer(private var source: String) {
 
  // syntax-rule = meta-identifier ´=´ definitions-list
   private def parseSyntaxRule() = {
-    val tree = new ParesTreeNode("syntax-rule")
+    val tree = new Tree("syntax-rule")
     var lexeme = getLexeme
     if (lexeme.getToken() == Token.IDENTIFIER) {
-      tree.add(new ParesTreeNode(lexeme.getLabel()))
+      tree.add(new Tree(lexeme.getLabel()))
       nextLexeme()
       lexeme = getLexeme()
       if (lexeme.getToken() == Token.EQUAL) {
-        tree.add(new ParesTreeNode(lexeme.getLabel()))
+        tree.add(new Tree(lexeme.getLabel()))
         nextLexeme()
         tree.add(parseDefinitionsList())
       }
@@ -95,12 +95,12 @@ class SyntaxAnalyzer(private var source: String) {
   }
 }
   // definitions-list = single-definition { ´|´ single-definition }
-  private def parseDefinitionsList(): ParesTreeNode = {
-    val tree = new ParesTreeNode("definitions-list")
+  private def parseDefinitionsList(): Tree = {
+    val tree = new Tree("definitions-list")
     tree.add(parseSingleDefinition())
     while (getLexeme().getToken() == Token.PIPE) {
       val lexeme = getLexeme()
-      tree.add(new ParesTreeNode(lexeme.getLabel()))
+      tree.add(new Tree(lexeme.getLabel()))
       nextLexeme()
       tree.add(parseSingleDefinition())
     }
