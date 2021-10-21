@@ -178,10 +178,9 @@ object MouseInterpreter {
       System.exit(1)
     }
 
-    val syntaxAnalyzer = new SyntaxAnalyzer(args(0))
-//    val parseTree = syntaxAnalyzer.parse()
-//    val interpreter = new MouseInterpreter(parseTree)
-//    interpreter.run()
-
+    val syntaxAnalyzer = new SyntaxAnalyzer(args(0), true)
+    val parseTree = syntaxAnalyzer.parse()
+    val interpreter = new MouseInterpreter(parseTree)
+    interpreter.run()
   }
 }
