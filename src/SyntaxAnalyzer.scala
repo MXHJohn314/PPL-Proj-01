@@ -1,17 +1,17 @@
+import scala.collection.mutable
+
 /*
-
-Should we have `Token.NEW_LINE` and `Token.META_IDENTIFIER` ?
-
-
  * CS3210 - Principles of Programming Languages - Fall 2021
  * Instructor: Thyago Mota
- * Student(s):
+ * Student(s) Name(s): Malcolm Johnson, Harrison Jones
  * Description: Prg 01 - SyntaxAnalyzer (an iterable syntax analyzer)
  */
-
 /*
-mouse       = { statement } ´$$´
-statement   = ´?´ | ´!´ | string | identifier | ´=´ | literal | ´+´ | ´-´ | ´*´ | ´/´ | ´\´ | ´^´ | ´.´ | if | while
+mouse       = { definition } { statement } ´$$´
+definition  = `$` defName { statement } ´@´
+call        = `#`  defName { identifier } ´;´
+defName     = letter { letter | literal }
+statement   = ´?´ | ´!´ | call | string | identifier | ´=´ | literal | ´+´ | ´-´ | ´*´ | ´/´ | ´\´ | ´^´ | ´.´ | if | while
 string      = ´"´ { character } ´"´
 identifier  = letter
 literal     = ´0´ | nonzero { digit }
@@ -26,86 +26,85 @@ blank       = ´ ´
 character   = letter | digit | punctuation | special | blank
  */
 
-class SyntaxAnalyzer(private var source: String) {
-
-  private val it = new LexicalAnalyzer(source).iterator
+class SyntaxAnalyzer(private var source: String, private var isFile: Boolean) {
+  private val lexicalAnalyzer = new LexicalAnalyzer(source, isFile)
+  private val it = lexicalAnalyzer.iterator
   private var current: Lexeme = null
+  
+   private val assigners = List(Token.IDENTIFIER, Token.LITERAL, Token.STRING, Token.MACRO_CALL)
+  private val genericTokens = List(
+     Token.PARAMETER, Token.STD_IN, Token.STD_OUT, Token.EQUAL, Token.ADD, Token.SUBTRACT, Token.MULTIPLY, Token.BREAK, Token.PUSH_VAL, Token.DIVIDE, Token.MODULO, Token.EO_PRG
+  )
+  private val specialTokens: Map[Token.Value, (String, String)] = Map (
+    Token.BEGIN_WHILE -> ("while", ")"),
+    Token.BEGIN_IF -> ("if", "]"),
+//    Token.MACRO_CALL -> ("call", ";"),
+//    Token.MACRO_DEF -> ("def", "@"),
+  )
   // returns the current lexeme
-  private def getLexeme(): Lexeme = {
+  private def getLexeme: Lexeme = {
     if (current == null) {
       current = it.next
     }
-    //    println(current)
     current
   }
 
   // advances the input one lexeme
-  private def nextLexeme() = {
+  private def nextLexeme(): Unit = {
     current = it.next
   }
 
-  def parseMouse() = {
-    val tree = new ParesTreeNode("mouse")
-    tree.add(parseSyntaxRule)
-    while(getLexeme().getToken() == Token.NEW_LINE) {
-      val lexeme = getLexeme
-      tree.add(new ParesTreeNode(lexeme.getLabel))
-      nextLexeme
-      tree.add(parseSyntaxRule)
-    }
-    tree
-  }
-
-  //  // TODO: finish the recursive descent parser
-//  // parses the program, returning its corresponding parse tree
-  def parse() = {
-    parseMouse()
-  }
-  private def parseSyntax() = {
-    val tree = new ParesTreeNode("syntax")
-    tree.add(parseSyntaxRule())
-    while (getLexeme().getToken() == Token.NEW_LINE) {
-      val lexeme = getLexeme()
-      tree.add(new ParesTreeNode(lexeme.getLabel()))
-      nextLexeme()
-      tree.add(parseSyntaxRule())
-    }
-    tree
-  }  
-
- // syntax-rule = meta-identifier ´=´ definitions-list
-  private def parseSyntaxRule() = {
-    val tree = new ParesTreeNode("syntax-rule")
-    var lexeme = getLexeme
-    if (lexeme.getToken() == Token.IDENTIFIER) {
-      tree.add(new ParesTreeNode(lexeme.getLabel()))
-      nextLexeme()
-      lexeme = getLexeme()
-      if (lexeme.getToken() == Token.EQUAL) {
-        tree.add(new ParesTreeNode(lexeme.getLabel()))
+  def parse(labelAndToken:(String, String) = ("mouse", "eof")): Tree = {
+    val branch = new Tree(labelAndToken._1) 
+    if(labelAndToken._1!= "mouse"){
+      val subTree = new Tree(getLexeme.getLabel())
+      branch.add(subTree)
+      if(false/*"call".contains(labelAndToken._1)*/){
         nextLexeme()
-        tree.add(parseDefinitionsList())
+        subTree.setAttribute("value", getLexeme.getLabel())
       }
-      else
-        throw new Exception("Syntax error: '=' expected!")
+      nextLexeme()
     }
-    else
-      throw new Exception("Syntax error: identifier expected!")
-    tree
+    val l = getLexeme.getLabel()
+    while(getLexeme.getLabel() != labelAndToken._2) {
+      branch.add(parseSyntaxRule())
+    }
+    branch
+  }
+  def getMap: mutable.Map[String, String] = lexicalAnalyzer.getMap
+  // TODO: finish the recursive descent parser
+  // parses the program, returning its corresponding parse tree
+  private def parseSyntaxRule(): Tree  = {
+    var node: Tree = null
+    var token = getLexeme.getToken()
+    var label = getLexeme.getLabel()
+    while (token == Token.COMMENT) {
+      nextLexeme()
+      token = getLexeme.getToken()
+      label = getLexeme.getLabel()
+    }
+    if(genericTokens.contains(token)) {
+      node = new Tree(label)
+    } else if (assigners.contains(token)) {
+      node = new Tree(token.toString.toLowerCase)
+      node.setAttribute("value", label)
+    }
+    else if(specialTokens.contains(token)) {
+      node = parse(specialTokens(token))
+      node.add(new Tree(specialTokens(token)._2))
+    }
+    val stmt = new Tree("statement")
+    if(label == "$$") {
+      nextLexeme()
+      return node
+    }
+    if(node == null) throw new Exception("No matching token found for `"
+      + label + "`. Are you missing one of `(`, `)`, `[`, `]`?")
+    stmt.add(node)
+    nextLexeme()
+    stmt
   }
 }
-  // definitions-list = single-definition { ´|´ single-definition }
-  private def parseDefinitionsList(): ParesTreeNode = {
-    val tree = new ParesTreeNode("definitions-list")
-    tree.add(parseSingleDefinition())
-    while (getLexeme().getToken() == Token.PIPE) {
-      val lexeme = getLexeme()
-      tree.add(new ParesTreeNode(lexeme.getLabel()))
-      nextLexeme()
-      tree.add(parseSingleDefinition())
-    }
-    tree
-  }
 
 object SyntaxAnalyzer {
   def main(args: Array[String]): Unit = {
@@ -116,8 +115,8 @@ object SyntaxAnalyzer {
       System.exit(1)
     }
 
-    val syntaxAnalyzer = new SyntaxAnalyzer(args(0))
-//    val parseTree = syntaxAnalyzer.parse()
-//    print(parseTree)
+    val syntaxAnalyzer = new SyntaxAnalyzer(args(0), true)
+    val parseTree = syntaxAnalyzer.parse()
+    print(parseTree)
   }
 }
