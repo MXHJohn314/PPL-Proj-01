@@ -1,0 +1,17 @@
+$factorial
+flag 1 =
+
+1 1% 1 - 0 1 - * + [ flag 0 = R 1 = R. ]
+flag . [
+    a 1%. 1 - =       
+    1%.! " - 1 = " a.! "\n"
+    R #factorial a; 1%. * = R.
+    ''"factorial(" 1%.! ") = "  1%.! " * factorial(" a.! ") = " R.! "\n"
+]@
+
+"What number do you want to do factorial for?"
+X ?  =
+#factorial X ; !
+$$
+
+
