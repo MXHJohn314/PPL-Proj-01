@@ -1,168 +1,112 @@
-import scala.collection.mutable
-import scala.io.StdIn
-
 /*
  * CS3210 - Principles of Programming Languages - Fall 2021
  * Instructor: Thyago Mota
  * Description: Prg 01 - MouseInterpreter
- * Student(s) Name(s):
+ * Student(s) Name(s): Malcolm Johnson, Harrison Jones
  */
 
-class MouseInterpreter(private var parseTree: Tree) {
+import scala.collection.mutable
+import scala.io.StdIn
 
-  val stack = mutable.Stack[Int]()
-  val variable = new Array[Option[Int]](26 * 2)
-  for (i <- 0 until variable.length)
-    variable(i) = None
+class MouseInterpreter(private var parseTreeNode: Tree, private var macroMap: mutable.Map[String, String]) {
+  val stack: mutable.Stack[String] = mutable.Stack[String]()
+  var variables: mutable.Map[String, String] = mutable.Map[String, String]()
 
-  private def nameToIndex(name: String) = {
-    val c = name(0)
-    if (c.isUpper)
-      c - 'A'
-    else
-      c - 'a' + 26
-  }
-
-  private def indexToName(index: Int) = {
-    if (index < 26)
-      ('A' + index).toChar + ""
-    else
-      ('a' + index - 26).toChar + ""
-  }
-
-  def run(): Unit = {
-    val it = parseTree.getBranches().iterator
-    var done = false
-    while (!done) {
-      val branch = it.next()
-      val label = branch.getAttribute("label").get
-      if (label.equals("$$"))
-        done = true
-      else
-        run(branch)
+  def getInt: Int = {
+    val v = stack.pop()
+    val regex = "[A-za-z_]".r
+    regex.findFirstIn(v) match {
+      case Some(varName) => 
+        variables(varName).toInt
+      case _ => 
+        v.toInt
     }
   }
-
+  
+  def run(): Unit = {
+    for(branch <- parseTreeNode.getBranches()){
+      if(branch.getAttribute("label").get == "$$") return
+      run(branch)
+    }
+  }
+  
   def run(stmt: Tree): Unit = {
     var branch = stmt.getBranches()(0)
-
     var label = branch.getAttribute("label").get
-
-    if (MouseInterpreter.DEBUG) {
-      println("[DEBUG] stack: " + stack)
-      println("[DEBUG] branch.label: " + label)
-    }
-
-    if (label.equals("string")) {
-      val value = branch.getAttribute("value").get
-      print(value)
-
-      if (MouseInterpreter.DEBUG)
-        println("[DEBUG] branch.value: " + value)
-    }
-    else if (label.equals("identifier")) {
-      val value = branch.getAttribute("value").get
-      if (MouseInterpreter.DEBUG)
-        println("[DEBUG] branch.value: " + value)
-      stack.push(nameToIndex(value))
-    }
-    else if (label.equals("literal")) {
-      val value = branch.getAttribute("value").get
-      if (MouseInterpreter.DEBUG)
-        println("[DEBUG] branch.value: " + value)
-      stack.push(value.toInt)
-    }
-    else if (label.equals("?")) {
-      val anInt = StdIn.readInt()
-      stack.push(anInt)
-    }
-    else if (label.equals("!")) {
-      val anInt = stack.pop
-      print(anInt)
-    }
-    else if (label.equals("=")) {
-      val b = stack.pop
-      val a = stack.pop
-      variable(a) = Some(b)
-      if (MouseInterpreter.DEBUG) {
-        print("[DEBUG] variable: ")
-        for (i <- 0 until variable.length)
-          print("[" + i + "]=" + variable(i) + " ")
-        println
-      }
-    }
-    else if (label.equals("+")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a + b)
-    }
-    else if (label.equals("-")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a - b)
-    }
-    else if (label.equals("*")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a * b)
-    }
-    else if (label.equals("/")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a / b)
-    }
-    else if (label.equals("\\")) {
-      val b = stack.pop
-      val a = stack.pop
-      stack.push(a % b)
-    }
-    else if (label.equals(".")) {
-      val index = stack.pop
-      variable(index) match {
-        case Some(value) => stack.push(value)
-        case None => throw new Exception("Runtime Error: variable " + indexToName(index) + " appears to be uninitialized!" )
-      }
-    }
-    else if (label.equals("if")) {
-      var done = false
-      val it = branch.getBranches().iterator
-      it.next // "consume" open bracket
-      val condition = stack.pop != 0
-      while (!done) {
-        branch = it.next()
-        label = branch.getAttribute("label").get
-        if (label.equals("]"))
-          done = true
-        else if (condition)
-          run(branch)
-      }
-    }
-    else if (label.equals("while")) {
-      var loopDone = false
-       while (!loopDone) {
-        var iterationDone = false
-        val it = branch.getBranches().iterator
-        it.next // "consume" open parenthesis
-        while (!iterationDone) {
-          val subBranch = it.next()
-          label = subBranch.getAttribute("label").get
-          if (label.equals(")")) {
-            iterationDone = true
-          }
-          else {
-            val stmt = subBranch.getBranches()(0)
-            if (stmt.getAttribute("label").get.equals("^") && stack.pop() == 0) {
+    label match {
+      case "identifier" | "literal" => stack.push(branch.getAttribute("value").get)
+      case "string" => print(branch.getAttribute("value").get)
+      case "?" => stack.push(StdIn.readInt + "")
+      case "!" => print(stack.pop)
+      case "=" => val b = getInt; val a = stack.pop(); variables += (a + "") -> (b + "")
+      case "+" => val b = getInt; val a = getInt; stack.push((a + b) + "") 
+      case "-" => val b = getInt; val a = getInt; stack.push((a - b) + "")
+      case "*" => val b = getInt; val a = getInt; stack.push((a * b) + "")
+      case "/" => val b = getInt; val a = getInt; stack.push((a / b) + "")
+      case "/" => val b = getInt; val a = getInt; stack.push((a / b) + "")
+      case "\\" => val b = getInt; val a = getInt; stack.push((a % b) + "")
+      case "." => stack.push(variables(stack.pop))
+      case "while" =>
+        var loopDone = false
+        while (!loopDone) {
+          var iterationDone = false
+          val it = branch.getBranches().iterator
+          it.next // "consume" open parenthesis
+          while (!iterationDone) {
+            val subBranch = it.next()
+            label = subBranch.getAttribute("label").get
+            if (label.equals(")")) {
               iterationDone = true
-              loopDone = true
             }
-            else
-              run(subBranch)
+            else {
+              val stmt = subBranch.getBranches()(0)
+              if (stmt.getAttribute("label").get == "^" && getInt == 0) {
+                iterationDone = true
+                loopDone = true
+              }
+              else
+                run(subBranch)
+            }
           }
         }
-      }
+        
+      case "if" =>
+        var done = false
+        val it = branch.getBranches().iterator
+        it.next // "consume" open bracket
+        val condition = getInt > 0
+        while (!done) {
+          branch = it.next()
+          label = branch.getAttribute("label").get
+          if (label.equals("]"))
+            done = true
+          else if (condition)
+            run(branch)
+        }
+      case "macro_call" =>
+        var macroCall = branch.getAttribute("value").get
+        macroCall = macroCall.substring(1, macroCall.length - 1).trim
+        val macroName: String = """[A-Za-z_][A-Za-z_0-9]*""".r.findFirstIn(macroCall).get
+        macroCall = macroCall.substring(macroName.length).trim
+        val parameters = """([^\s]+)""".r.findAllMatchIn(macroCall).toArray.map{ _.subgroups.flatMap(Option(_)).fold("")(_ ++ _) }
+        var program = ""
+        macroMap.foreach(entry => program += "$" + entry._1 + "\n" + entry._2.replaceAll("\\$\\$", "@") + "\n")
+        var macroBody: String = macroMap(macroName)
+        var i = 1
+        parameters.foreach(param => {
+          program += param + " " + variables(param) + " =" + "\n"
+          macroBody = macroBody.replaceAll(i + "%", param)
+          i += 1
+        })
+        program += macroBody
+        val syntaxAnalyzer = new SyntaxAnalyzer(program, false)
+        val parseTreeNode = syntaxAnalyzer.parse()
+        val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)
+        interpreter.run()
+        stack.push(interpreter.stack.pop())
+      case _ => throw new Exception("invalid token.") 
     }
   }
-
 }
 
 object MouseInterpreter {
@@ -179,8 +123,8 @@ object MouseInterpreter {
     }
 
     val syntaxAnalyzer = new SyntaxAnalyzer(args(0), true)
-    val parseTree = syntaxAnalyzer.parse()
-    val interpreter = new MouseInterpreter(parseTree)
+    val parseTreeNode = syntaxAnalyzer.parse()
+    val interpreter = new MouseInterpreter(parseTreeNode, syntaxAnalyzer.getMap)
     interpreter.run()
   }
 }
